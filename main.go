@@ -1,72 +1,64 @@
 package main
 
 import (
-	"fmt"
 	"time"
 	"sync"
 )
 
-var wgObs sync.WaitGroup
-var wgMessageDrone sync.WaitGroup
+var number_of_message_from_drone_handler int
+var number_of_message_from_server_handler int
+var number_of_drones int
 
-func ObsHandler(obs chan Coord) {
-	for {
-		o, ok := <- obs
-		if ok {
-			o.Print()
-		} else {
-			fmt.Println("No more obstacle, close")
-			wgObs.Done()
-			return
+var Wg_message_from_drone sync.WaitGroup
+var Wg_message_from_server sync.WaitGroup
+var Wg_drones sync.WaitGroup
+
+var drones_slice []Drone
+var message_from_drone_channel chan MessageFromDrone
+var message_from_server_channel_slice []chan MessageFromServer
+
+func init() {
+	JsonConfig := ReadConfig("config/fake.json")
+	number_of_message_from_drone_handler = JsonConfig.Number_of_message_from_drone_handler
+	Wg_message_from_drone.Add(number_of_message_from_drone_handler)
+	number_of_message_from_server_handler = JsonConfig.Number_of_message_from_server_handler
+	Wg_message_from_server.Add(number_of_message_from_server_handler)
+	number_of_drones = len(JsonConfig.Drones)
+	Wg_drones.Add(number_of_drones)
+	drones_slice = make([]Drone, number_of_drones)
+	for i, d := range JsonConfig.Drones {
+		drones_slice[i].Number = d.Number
+		switch d.Driver {
+		case "fake":
+			drones_slice[i].Driver = FakeDriver{}
 		}
 	}
-}
-
-func MsgDroneHandler(msg_drone chan MessageDrone) {
-	for {
-		md, ok := <- msg_drone
-		if ok {
-			md.Print()
-		} else {
-			fmt.Println("No more message from drone, close")
-			wgMessageDrone.Done()
-			return
-		}
+	message_from_drone_channel = make(chan MessageFromDrone, 100)
+	message_from_server_channel_slice = make([]chan MessageFromServer, len(drones_slice))
+	for i := range message_from_server_channel_slice {
+		message_from_server_channel_slice[i] = make(chan MessageFromServer, 100)
 	}
 }
 
 func main() {
-	obs := make(chan Coord, 100)
-	msgDrone := make(chan MessageDrone, 100)
-	messages_server := make([]chan MessageServer, len(drones))
-	for i := range messages_server {
-		messages_server[i] = make(chan MessageServer, 100)
+	for i := 0; i < number_of_message_from_drone_handler; i++ {
+		go MessageFromDroneHandler(message_from_drone_channel)
 	}
 
-	wgObs.Add(1)
-	wgMessageDrone.Add(1)
+	for i := 0; i < number_of_message_from_server_handler; i++ {
+	}
 
-	go ObsHandler(obs)
-	go MsgDroneHandler(msgDrone)
-
-	LaunchDrones(obs, msgDrone, messages_server)
+	for i, d := range drones_slice {
+		go d.Run(message_from_drone_channel, message_from_server_channel_slice[i])
+	}
 
 	time.Sleep(5 * time.Second)
 
-	for i := 0; i < 5; i++ {
-		msg := MessageServer{Coord{i, i, i}, i}
-		for _, ms := range messages_server {
-			ms <- msg
-		}
+	Wg_message_from_server.Wait()
+	for _, m := range message_from_server_channel_slice {
+		close(m)
 	}
-
-	for _, ms := range messages_server {
-		close(ms)
-	}
-
-	wg_drone.Wait()
-	close(obs)
-	close(msgDrone)
-	wgObs.Wait()
-	wgMessageDrone.Wait()
+	Wg_drones.Wait()
+	close(message_from_drone_channel)
+	Wg_message_from_drone.Wait()
 }
