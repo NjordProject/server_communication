@@ -23,6 +23,6 @@ fig, ax = plt.subplots()
 cax = ax.imshow(data, interpolation="nearest", cmap=cm.rainbow) #See matplotlib documentation for others interpolation methods
 ax.set_title("Classroom's topography")
 cbar = fig.colorbar(cax, ticks=[0, 127, 255])
-cbar.ax.set_yticklabels(["< 0", "127", " > 255"])
+cbar.ax.set_yticklabels(["> 0", "127", "< 255"])
 
 plt.show()
