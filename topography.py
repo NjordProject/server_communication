@@ -4,25 +4,38 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
+import redis
+import sys
 
-data = list()
+name_area = sys.argv[1]
+r = redis.StrictRedis(host = "localhost", port = 6379, db = 0)
 
-#Just, in order to test vizualisation. Waiting for Redis
-for i in range(0, 255):
-	row = list()
-	for j in range(0, 255):
-		row.append(np.random.randint(256))
-	data.append(row)
+data = np.zeros([0, 0])
 
 fig, ax = plt.subplots()
-###Different colormaps:
-#cm.spectral
-#cm.rainbow
-#cm.autumn
-#cm.cool
-cax = ax.imshow(data, interpolation="nearest", cmap=cm.rainbow) #See matplotlib documentation for others interpolation methods
-ax.set_title("Classroom's topography")
-cbar = fig.colorbar(cax, ticks=[0, 127, 255])
-cbar.ax.set_yticklabels(["> 0", "127", "< 255"])
+#cax = ax.imshow(data, interpolation = "nearest", cmap = cm.hot_r, origin = "lower")
+cax = ax.imshow(data, cmap = cm.hot_r, origin = "lower")
+ax.set_title(name_area + "'s topography")
+cbar = fig.colorbar(cax, ticks = [0, 100, 200])
+cbar.ax.set_yticklabels(["< 0", "100", "> 200"])
+ax.patch.set_facecolor('white')
+plt.show(block = False)
 
-plt.show()
+#Read from redis list and add to plot each new value available
+while True:
+	e = r.blpop(name_area)[1][1:-1].replace(' ', '').split(',')
+	e = [int(i) for i in e]
+	if(e[1] > data.shape[0]): #We need to resize the matrix
+		tmp = np.zeros([e[1], data.shape[1]])
+		tmp[0:data.shape[0], 0:data.shape[1]] = data
+		data = tmp
+	if(e[2] > data.shape[1]):
+		tmp = np.zeros([data.shape[0], e[2]])
+		tmp[0:data.shape[0], 0:data.shape[1]] = data
+		data = tmp
+	if e[3] - e[9] < 0:
+		data[e[1] - 1, e[2] - 1] = 0
+	else:
+		data[e[1] - 1, e[2] - 1] = e[3] - e[9]
+	cax = ax.imshow(data, cmap = cm.hot_r, origin = "lower", interpolation = "nearest")
+	plt.draw()
