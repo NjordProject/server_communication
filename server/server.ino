@@ -20,6 +20,7 @@ void setup() {
 }
 
 void loop() {
+  //For each drone write on serial port received message
   for(i = 0; i < NB_DRONE; i++) {
     ok = com.receiveMsg(msgDrone, lenMsgDrone, i + 1);
     if(ok) {

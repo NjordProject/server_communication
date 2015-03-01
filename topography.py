@@ -33,7 +33,7 @@ while True:
 		tmp = np.zeros([data.shape[0], e[2]])
 		tmp[0:data.shape[0], 0:data.shape[1]] = data
 		data = tmp
-	if e[3] - e[9] < 0:
+	if e[3] - e[9] < 0: #If distance > 5m
 		data[e[1] - 1, e[2] - 1] = 0
 	else:
 		data[e[1] - 1, e[2] - 1] = e[3] - e[9]
