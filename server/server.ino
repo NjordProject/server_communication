@@ -4,7 +4,7 @@
 
 #define NB_DRONE 1
 
-Communication com(8, 10);
+Communication com(9, 10);
 bool ok;
 uint8_t msgDrone[11];
 uint8_t lenMsgDrone = sizeof(msgDrone);
