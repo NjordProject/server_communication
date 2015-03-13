@@ -8,7 +8,12 @@ Communication com(9, 10);
 bool ok;
 uint8_t msgDrone[11];
 uint8_t lenMsgDrone = sizeof(msgDrone);
+uint8_t msgServer[5];
+uint8_t lenMsgServer = sizeof(msgServer);
+char read_value;
+String tmp = "";
 int i = 0;
+int j = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -42,11 +47,30 @@ void loop() {
       Serial.print(msgDrone[7]);
       Serial.print(";s5:");
       Serial.print(msgDrone[8]);
-      Serial.print(";s6:");
+      Serial.print(";s6:"); 
       Serial.print(msgDrone[9]);
       Serial.print(";msg:");
       Serial.println(msgDrone[10]);
     }
   }
-  delay(400);
+  while(Serial.available() > 0) {
+    read_value = Serial.read();
+    if(read_value != ';'){
+      tmp += read_value;
+    }
+    else{
+      msgServer[j] = tmp.toInt();
+      j++;
+      tmp = "";  
+    }
+    if(j > 4){
+      Serial.println("MESSAGE");
+      ok = com.sendMsg(msgServer, lenMsgServer, msgServer[0]);
+      j = 0;
+      if(!ok){
+        Serial.println("Error sending msg");
+      }
+    }
+  }
+  delay(500);
 } 

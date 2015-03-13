@@ -10,3 +10,7 @@ while True:
 	msg = [int(m.split(':')[1]) for m in msg[:-2].split(';')]
 	print msg
 	r.lpush(sys.argv[1], msg)
+	msg = r.lpop(sys.argv[1] + "_target")
+	if msg is not None:
+		print "Writes order on serial"
+		#arduino.write(msg)
